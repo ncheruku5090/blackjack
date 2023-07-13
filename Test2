@@ -1,0 +1,200 @@
+import java.util.*;
+
+class Player {
+    private List<Integer> hand;
+    private String name;
+
+    public Player(String name) {
+        this.name = name;
+        hand = new ArrayList<>();
+    }
+
+    public void addCard(int card) {
+        hand.add(card);
+    }
+
+    public List<Integer> getHand() {
+        return hand;
+    }
+
+    public int getTotal() {
+        int total = 0;
+        int numAces = 0;
+
+        for (int card : hand) {
+            if (card == 1) {
+                numAces++;
+            }
+            total += card;
+        }
+
+        while (total < 21 && numAces > 0) {
+            total += 10; // Convert Ace from 1 to 11 if it benefits the player
+            numAces--;
+        }
+
+        return total;
+    }
+
+    public String getName() {
+        return name;
+    }
+}
+
+class Dealer {
+    private List<Integer> deck;
+    private List<Integer> hand;
+
+    public Dealer() {
+        deck = new ArrayList<>(Arrays.asList(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 10, 10, 10));
+        hand = new ArrayList<>();
+        Collections.shuffle(deck);
+    }
+
+    public void dealCard(Player player) {
+        int card = deck.remove(deck.size() - 1);
+        player.addCard(card);
+    }
+
+    public void play() {
+        while (getTotal() < 17) {
+            int card = deck.remove(deck.size() - 1);
+            hand.add(card);
+        }
+    }
+
+    public int getTotal() {
+        int total = 0;
+        int numAces = 0;
+
+        for (int card : hand) {
+            if (card == 1) {
+                numAces++;
+            }
+            total += card;
+        }
+
+        while (total < 17 && numAces > 0) {
+            total += 10; // Convert Ace from 1 to 11 if it benefits the dealer
+            numAces--;
+        }
+
+        return total;
+    }
+}
+
+public class BlackjackGame {
+    private static Scanner scanner = new Scanner(System.in);
+    private static List<Player> players = new ArrayList<>();
+
+    public static void main(String[] args) {
+        if (args.length == 0) {
+            System.out.println("Usage: java BlackjackGame <numPlayers>");
+            return;
+        }
+
+        int numPlayers = Integer.parseInt(args[0]);
+
+        createPlayers(numPlayers);
+
+        Dealer dealer = new Dealer();
+
+        System.out.println("Starting game with " + numPlayers + " players.");
+        System.out.println("Shuffling.");
+
+        for (Player player : players) {
+            dealer.dealCard(player);
+            System.out.println("Dealing to " + player.getName() + ", card: " + cardName(player.getHand().get(0)));
+        }
+
+        dealer.dealCard(dealer); // Dealer's first card is face down
+
+        for (Player player : players) {
+            playPlayerTurn(player, dealer);
+        }
+
+        dealer.play();
+        determineWinners(dealer);
+
+        scanner.close();
+    }
+
+    private static void createPlayers(int numPlayers) {
+        for (int i = 0; i < numPlayers; i++) {
+            players.add(new Player("player " + (i + 1)));
+        }
+    }
+
+    private static void playPlayerTurn(Player player, Dealer dealer) {
+        System.out.println("Dealing to " + player.getName() + ", cards: " + handToString(player));
+
+        while (true) {
+            System.out.print("Hit or Stand? > ");
+            String choice = scanner.nextLine().toLowerCase();
+
+            if (choice.equals("hit")) {
+                dealer.dealCard(player);
+                System.out.println("Dealing to " + player.getName() + ", cards: " + handToString(player));
+
+                if (player.getTotal() > 21) {
+                    System.out.println(player.getName() + " busted over 21.");
+                    break;
+                }
+            } else if (choice.equals("stand")) {
+                break;
+            } else {
+                System.out.println("Invalid choice. Try again.");
+            }
+        }
+    }
+
+    private static void determineWinners(Dealer dealer) {
+        System.out.println("Dealing to computer, cards: " + handToString(dealer));
+
+        int dealerTotal = dealer.getTotal();
+        System.out.println("Dealer's total: " + dealerTotal);
+
+        for (Player player : players) {
+            System.out.println("\nScoring " + player.getName() + ": ");
+            System.out.println("Player's hand: " + handToString(player));
+
+            int playerTotal = player.getTotal();
+            System.out.println(player.getName() + "'s total: " + playerTotal);
+
+            if (dealerTotal > 21) {
+                System.out.println("Dealer is busted. " + player.getName() + " wins!");
+            } else if (playerTotal > 21) {
+                System.out.println(player.getName() + " is busted. Dealer wins!");
+            } else if (playerTotal > dealerTotal) {
+                System.out.println(player.getName() + " wins!");
+            } else if (playerTotal < dealerTotal) {
+                System.out.println("Dealer wins!");
+            } else {
+                System.out.println("It's a tie!");
+            }
+        }
+    }
+
+    private static String handToString(Player player) {
+        StringBuilder sb = new StringBuilder();
+        List<Integer> hand = player.getHand();
+        for (int card : hand) {
+            sb.append(cardName(card)).append(", ");
+        }
+        return sb.substring(0, sb.length() - 2);
+    }
+
+    private static String cardName(int card) {
+        if (card == 1) {
+            return "Ace";
+        } else if (card == 11) {
+            return "Jack";
+        } else if (card == 12) {
+            return "Queen";
+        } else if (card == 13) {
+            return "King";
+        } else {
+            return String.valueOf(card);
+        }
+    }
+}
